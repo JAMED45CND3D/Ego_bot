@@ -1,2 +1,0 @@
-# Ego_bot
-Well
