@@ -1,2 +1,0 @@
-python-telegram-bot[job-queue]==21.3
-groq==0.9.0
