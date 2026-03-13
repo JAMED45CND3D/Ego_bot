@@ -1,0 +1,32 @@
+{
+  "name": "EGO",
+  "short_name": "EGO",
+  "description": "Avatar · Autonomous AI · r(θ) = 105 × e^(0.0318 × θ)",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme_color": "#c9a84c",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "lifestyle"],
+  "shortcuts": [
+    {
+      "name": "Chat with EGO",
+      "url": "/?mode=chat",
+      "description": "Open chat"
+    }
+  ]
+}
