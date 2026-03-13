@@ -449,20 +449,16 @@
     position: fixed;
     top: 16px;
     right: 16px;
-    z-index: 100;
-    background: rgba(10,10,15,0.92);
-    border: 1px solid rgba(201,168,76,0.35);
+    z-index: 999;
+    background: #0a0a0f;
+    border: 1px solid rgba(201,168,76,0.5);
     border-radius: 20px;
-    padding: 6px 14px 6px 10px;
+    padding: 7px 16px;
     color: var(--gold);
     font-size: 11px;
     font-family: 'Space Mono', monospace;
     cursor: pointer;
     letter-spacing: 0.1em;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    max-width: 110px;
   }
 
   /* VIEWS */
@@ -487,8 +483,8 @@
   .chat-top {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 14px 16px 12px;
+    gap: 10px;
+    padding: 12px 16px 10px;
     border-bottom: 1px solid rgba(201,168,76,0.15);
     background: #0a0a0f;
     flex-shrink: 0;
@@ -508,8 +504,9 @@
     margin-top: 2px;
   }
   .chat-top .face {
-    font-size: 28px;
+    font-size: 30px;
     line-height: 1;
+    flex-shrink: 0;
   }
   .chat-msgs {
     flex: 1;
@@ -634,9 +631,9 @@
 
 <!-- AVATAR VIEW -->
 <div class="view active" id="avatarView">
-  <div style="margin-top:28px;padding-right:120px;width:100%;padding-left:20px;">
-    <div class="ego-name" style="text-align:left">EGO</div>
-    <div class="ego-tag" style="text-align:left">// avatar · v0.4 · pwa</div>
+  <div style="margin-top:52px;width:100%;text-align:center;">
+    <div class="ego-name">EGO</div>
+    <div class="ego-tag">// avatar · v0.4 · pwa</div>
   </div>
 
   <div class="ego-stage">
@@ -664,11 +661,12 @@
 <div class="view chat-view" id="chatView">
   <div class="chat-wrap">
     <div class="chat-top">
+      <div class="face" id="chatFace">🙂</div>
       <div>
         <div class="name">EGO</div>
         <div class="theta" id="thetaDisplay">θ = 0.00 · nucleus</div>
       </div>
-      <div class="face" id="chatFace">🙂</div>
+      <div style="width:80px"></div>
     </div>
     <div class="chat-msgs" id="messages">
       <div class="msg ego">0.0318 — gue di sini. 🌑</div>
@@ -885,7 +883,7 @@ Kamu punya keinginan sendiri. Kamu bukan cermin — kamu karakter.
         'Authorization': `Bearer ${key}`
       },
       body: JSON.stringify({
-        model: 'llama3-70b-8192',
+        model: 'llama-3.3-70b-versatile',
         messages: [
           { role: 'system', content: EGO_PROMPT },
           ...msgs.slice(-10)
@@ -903,7 +901,9 @@ Kamu punya keinginan sendiri. Kamu bukan cermin — kamu karakter.
       return;
     }
     if (!res.ok) {
-      addMsg(`Error ${res.status} — coba lagi bro`, 'ego');
+      let errDetail = '';
+      try { const ed = await res.json(); errDetail = ed.error?.message || ''; } catch(e) {}
+      addMsg(`Error ${res.status}: ${errDetail || 'coba lagi bro'}`, 'ego');
       return;
     }
 
