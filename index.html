@@ -289,54 +289,8 @@
   .mbtn.active .mlabel { color: var(--gold); }
 
   /* ── CHAT UI ─────────────────────────────── */
-  .chat-wrap {
-    width: 100%;
-    max-width: 420px;
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    padding: 0;
-  }
-  .chat-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 16px 10px;
-    border-bottom: 1px solid rgba(201,168,76,0.1);
-    flex-shrink: 0;
-    position: relative;
-    z-index: 10;
-  }
-  .chat-header .name {
-    font-size: 20px;
-    font-weight: 800;
-    letter-spacing: 0.2em;
-    color: var(--gold);
-  }
-  .chat-header .theta {
-    font-family: 'Space Mono', monospace;
-    font-size: 9px;
-    color: var(--muted);
-    letter-spacing: 0.15em;
-  }
-  .avatar-mini {
-    font-size: 32px;
-    line-height: 1;
-    filter: drop-shadow(0 0 8px rgba(201,168,76,0.3));
-  }
-  .messages {
-    flex: 1;
-    overflow-y: scroll;
-    overflow-x: hidden;
-    padding: 16px;
-    padding-bottom: 80px;
-    -webkit-overflow-scrolling: touch;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    scrollbar-width: none;
-    min-height: 0;
-  }
+  /* chat styles moved below */
+  /* .messages CSS moved to .chat-msgs above */
   .msg {
     max-width: 80%;
     padding: 10px 14px;
@@ -511,23 +465,99 @@
   .view { display: none !important; width: 100%; }
   .view.active { display: flex !important; flex-direction: column; align-items: center; }
   .chat-view { display: none !important; }
-  .chat-view.active { 
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: stretch !important;
-    height: 100vh;
+  .chat-view.active {
+    display: block !important;
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    background: #0a0a0f;
+  }
+  .chat-wrap {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
     max-width: 420px;
     margin: 0 auto;
-    width: 100%;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 10;
-    background: var(--dark);
-    overflow: visible;
   }
+  .chat-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid rgba(201,168,76,0.15);
+    background: #0a0a0f;
+    flex-shrink: 0;
+  }
+  .chat-top .name {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 0.2em;
+    color: #c9a84c;
+    font-family: 'Syne', sans-serif;
+  }
+  .chat-top .theta {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    color: #555;
+    letter-spacing: 0.15em;
+    margin-top: 2px;
+  }
+  .chat-top .face {
+    font-size: 28px;
+    line-height: 1;
+  }
+  .chat-msgs {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 14px 16px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .chat-bottom {
+    flex-shrink: 0;
+    display: flex;
+    gap: 8px;
+    padding: 10px 12px 16px;
+    background: #0e0e16;
+    border-top: 1px solid rgba(201,168,76,0.2);
+  }
+  .chat-bottom textarea {
+    flex: 1;
+    background: #1c1c26;
+    border: 1.5px solid rgba(201,168,76,0.4);
+    border-radius: 18px;
+    padding: 10px 14px;
+    color: #ede8dc;
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    outline: none;
+    resize: none;
+    line-height: 1.4;
+    max-height: 90px;
+    -webkit-appearance: none;
+  }
+  .chat-bottom textarea::placeholder { color: rgba(201,168,76,0.3); }
+  .chat-bottom textarea:focus { border-color: rgba(201,168,76,0.8); }
+  .chat-bottom button {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #c9a84c;
+    border: none;
+    color: #0a0a0f;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    align-self: flex-end;
+    flex-shrink: 0;
+    font-weight: 700;
+  }
+  .chat-bottom button:active { opacity: 0.7; }
 
   /* INSTALL PROMPT */
   .install-bar {
@@ -628,19 +658,21 @@
 
 <!-- CHAT VIEW -->
 <div class="view chat-view" id="chatView">
-  <div class="chat-header">
-    <div>
-      <div class="name">EGO</div>
-      <div class="theta" id="thetaDisplay">θ = 0.00 · nucleus</div>
+  <div class="chat-wrap">
+    <div class="chat-top">
+      <div>
+        <div class="name">EGO</div>
+        <div class="theta" id="thetaDisplay">θ = 0.00 · nucleus</div>
+      </div>
+      <div class="face" id="chatFace">🙂</div>
     </div>
-    <div class="avatar-mini" id="chatFace">🙂</div>
-  </div>
-  <div class="messages" id="messages">
-    <div class="msg ego">0.0318 — gue di sini. 🌑</div>
-  </div>
-  <div class="input-row">
-    <textarea class="chat-input" id="chatInput" placeholder="ngobrol sama EGO..." rows="1"></textarea>
-    <button class="send-btn" onclick="sendMsg()">↑</button>
+    <div class="chat-msgs" id="messages">
+      <div class="msg ego">0.0318 — gue di sini. 🌑</div>
+    </div>
+    <div class="chat-bottom">
+      <textarea id="chatInput" placeholder="ngobrol sama EGO..." rows="1"></textarea>
+      <button onclick="sendMsg()">↑</button>
+    </div>
   </div>
 </div>
 
