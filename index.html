@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
 <title>EGO</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#c9a84c">
@@ -383,11 +383,13 @@
     display: flex;
     gap: 8px;
     padding: 12px 16px;
-    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
     border-top: 1px solid rgba(201,168,76,0.08);
-    background: rgba(10,10,15,0.95);
-    backdrop-filter: blur(10px);
+    background: rgba(10,10,15,0.98);
     flex-shrink: 0;
+    position: sticky;
+    bottom: 0;
+    z-index: 50;
   }
   .chat-input {
     flex: 1;
@@ -503,6 +505,7 @@
     display: flex !important;
     flex-direction: column !important;
     align-items: stretch !important;
+    height: 100dvh;
     height: 100vh;
     max-width: 420px;
     margin: 0 auto;
@@ -511,6 +514,7 @@
     inset: 0;
     z-index: 10;
     background: var(--dark);
+    overflow: hidden;
   }
 
   /* INSTALL PROMPT */
