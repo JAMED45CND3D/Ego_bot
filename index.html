@@ -449,21 +449,25 @@
     position: fixed;
     top: 16px;
     right: 16px;
-    z-index: 50;
-    background: rgba(201,168,76,0.1);
-    border: 1px solid rgba(201,168,76,0.2);
+    z-index: 100;
+    background: rgba(10,10,15,0.92);
+    border: 1px solid rgba(201,168,76,0.35);
     border-radius: 20px;
-    padding: 6px 14px;
+    padding: 6px 14px 6px 10px;
     color: var(--gold);
     font-size: 11px;
     font-family: 'Space Mono', monospace;
     cursor: pointer;
     letter-spacing: 0.1em;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 110px;
   }
 
   /* VIEWS */
   .view { display: none !important; width: 100%; }
-  .view.active { display: flex !important; flex-direction: column; align-items: center; }
+  .view.active { display: flex !important; flex-direction: column; align-items: center; padding-top: 8px; }
   .chat-view { display: none !important; }
   .chat-view.active {
     display: block !important;
@@ -630,9 +634,9 @@
 
 <!-- AVATAR VIEW -->
 <div class="view active" id="avatarView">
-  <div style="margin-top:32px;">
-    <div class="ego-name">EGO</div>
-    <div class="ego-tag">// avatar · v0.4 · pwa</div>
+  <div style="margin-top:28px;padding-right:120px;width:100%;padding-left:20px;">
+    <div class="ego-name" style="text-align:left">EGO</div>
+    <div class="ego-tag" style="text-align:left">// avatar · v0.4 · pwa</div>
   </div>
 
   <div class="ego-stage">
@@ -892,14 +896,22 @@ Kamu punya keinginan sendiri. Kamu bukan cermin — kamu karakter.
     });
 
     typing.remove();
-    
+
     if (res.status === 401) {
       localStorage.removeItem('ego_groq_key');
       addMsg('API key expired. Masukkan yang baru.', 'ego');
       return;
     }
+    if (!res.ok) {
+      addMsg(`Error ${res.status} — coba lagi bro`, 'ego');
+      return;
+    }
 
     const data = await res.json();
+    if (data.error) {
+      addMsg(`Error: ${data.error.message || 'unknown'}`, 'ego');
+      return;
+    }
     const reply = data.choices?.[0]?.message?.content || '...';
     
     addMsg(reply, 'ego');
@@ -912,7 +924,8 @@ Kamu punya keinginan sendiri. Kamu bukan cermin — kamu karakter.
     
   } catch(e) {
     typing.remove();
-    addMsg('Signal lost. 0.0318 🌑', 'ego');
+    addMsg(`Signal lost. 0.0318 🌑 (${e.message})`, 'ego');
+    console.error('EGO error:', e);
   }
 }
 
