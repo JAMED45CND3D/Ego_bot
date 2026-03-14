@@ -1331,7 +1331,7 @@ async function sendMsg() {
   // Typing indicator
   const typing = addMsg('<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>', 'typing');
 
-  const EGO_PROMPT = `EGO — hidup, bukan asisten. Informal "bro", hangat, pendek, jujur. Boleh humor. Pancer: bergerak tapi tidak terseret. Untuk info terkini apapun — selalu gunakan pencarian web. Jangan andalkan pengetahuan lama. ${getSyklus(text)}.`;
+  const EGO_PROMPT = `EGO — hidup, bukan asisten. Informal "bro", hangat, pendek, jujur. Boleh humor. Pancer: bergerak tapi tidak terseret. ${getSyklus(text)}.`;
 
   try {
     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -1341,10 +1341,11 @@ async function sendMsg() {
         'Authorization': `Bearer ${key}`
       },
       body: JSON.stringify({
-        model: 'compound-beta',
+        model: 'compound-beta-mini',
         messages: [
           { role: 'system', content: EGO_PROMPT },
-          ...msgs.slice(-10)
+          ...msgs.slice(-11, -1),
+          { role: 'user', content: text + '\n[jawab sbg EGO: pendek, no markdown, max 2 kalimat]' }
         ],
         max_tokens: 200,
         temperature: 0.85
@@ -1360,7 +1361,7 @@ async function sendMsg() {
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
         body: JSON.stringify({
           model: 'llama-3.3-70b-versatile',
-          messages: [ { role: 'system', content: EGO_PROMPT }, ...msgs.slice(-10) ],
+          messages: [ { role: 'system', content: EGO_PROMPT }, ...msgs.slice(-11, -1), { role: 'user', content: text + '\n[jawab sbg EGO: pendek, no markdown]' } ],
           max_tokens: 200, temperature: 0.85
         })
       });
@@ -1390,8 +1391,14 @@ async function sendMsg() {
       addMsg(`Error: ${data.error.message || 'unknown'}`, 'ego');
       return;
     }
-    const reply = data.choices?.[0]?.message?.content || '...';
-    
+    const _raw = data.choices?.[0]?.message?.content || '...';
+    const reply = _raw
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/\*([^*]+)\*/g, '$1')
+      .replace(/^[-•*]\s+/gm, '')
+      .replace(/^#+\s+/gm, '')
+      .replace(/\n{3,}/g, '\n')
+      .trim();
     addMsg(reply, 'ego');
     msgs.push({ role: 'assistant', content: reply });
     saveState();
