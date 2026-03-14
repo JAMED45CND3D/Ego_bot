@@ -1341,7 +1341,7 @@ async function sendMsg() {
         'Authorization': `Bearer ${key}`
       },
       body: JSON.stringify({
-        model: 'compound-beta-mini',
+        model: 'compound-beta',
         messages: [
           { role: 'system', content: EGO_PROMPT },
           ...msgs.slice(-10)
