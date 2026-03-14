@@ -1343,7 +1343,7 @@ Kamu Pancer: bergerak tapi tidak ikut terseret noise. ${getSyklus(text)}.`;
         'Authorization': `Bearer ${key}`
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model: 'compound-beta-mini',
         messages: [
           { role: 'system', content: EGO_PROMPT },
           ...msgs.slice(-10)
