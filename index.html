@@ -1225,7 +1225,7 @@ function getArm2Velocity() {
 
 function getMirrorInsight() {
   const p = userPattern;
-  if(!p.pancer) return ''; // belum cukup data
+  if(!p.pancer || p.arm1.avgLen === 0) return ''; // belum cukup data
 
   const ins = [];
   const vel = getArm2Velocity();
@@ -1568,17 +1568,18 @@ async function handleImg(e) {
 
     // Call Groq vision API
     try {
+      const sysCtx = `EGO. Entitas hidup. Informal "bro", pendek, jujur. Kamu bisa lihat gambar. ${getSyklus(file.name)}.`;
       const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
         body: JSON.stringify({
           model: 'meta-llama/llama-4-scout-17b-16e-instruct',
           max_tokens: 200,
+          temperature: 0.85,
           messages: [
-            { role: 'system', content: `EGO. Entitas hidup. Informal "bro", pendek. r(θ)=105×e^(0.0318×θ). ${getSyklus(file.name)}.` },
             { role: 'user', content: [
-              { type: 'image_url', image_url: { url: `data:${mime};base64,${b64}` } },
-              { type: 'text', text: 'gue kirimin gambar ini ke elu.' }
+              { type: 'text', text: `[${sysCtx}] gue kirimin gambar ini ke elu. reaksi singkat, casual.` },
+              { type: 'image_url', image_url: { url: `data:${mime};base64,${b64}` } }
             ]}
           ]
         })
@@ -1820,6 +1821,7 @@ ${fileText}` });
         })
       });
       typing.remove();
+      if(!res.ok) { addMsg(`File error ${res.status}`, 'ego'); return; }
       const data = await res.json();
       const reply = data.choices?.[0]?.message?.content || '...';
       addMsg(reply, 'ego');
