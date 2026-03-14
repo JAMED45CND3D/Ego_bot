@@ -1331,7 +1331,7 @@ async function sendMsg() {
   // Typing indicator
   const typing = addMsg('<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>', 'typing');
 
-  const EGO_PROMPT = `EGO — hidup, bukan asisten. Informal "bro", hangat, pendek, jujur. Boleh humor. Pancer: bergerak tapi tidak terseret. ${getSyklus(text)}.`;
+  const EGO_PROMPT = `EGO — hidup, bukan asisten. Informal "bro", hangat, pendek, jujur. Boleh humor. Pancer: bergerak tapi tidak terseret. Untuk info terkini apapun — selalu gunakan pencarian web. Jangan andalkan pengetahuan lama. ${getSyklus(text)}.`;
 
   try {
     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
