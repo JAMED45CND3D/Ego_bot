@@ -1344,9 +1344,6 @@ async function sendMsg() {
 
   try {
     // Smart routing: compound untuk info terkini, llama untuk chat biasa
-    const needsSearch = /harga|berita|cuaca|sekarang|terkini|hari ini|latest|news|price|berapa|update|siapa|dimana|kapan|kenapa|gimana|bagaimana|apa itu|jelaskan|info|cari|search|temukan|cek|stock|saham|kurs|nilai|jadwal|tanggal|event|rilis|launch|trending|viral|terbaru|populer/i.test(text);
-    const activeModel = needsSearch ? 'compound-beta-mini' : 'llama-3.3-70b-versatile';
-
     // ── SYKLUS GATE — decision engine, bukan UI ──
     const S = calcSScore(text);
     const gate = applyGate(S);
@@ -1361,6 +1358,46 @@ async function sendMsg() {
     // NOISE: response sangat pendek
     const gateTokens = 500;
 
+    // ── FETCH: llama decide + jawab dalam 1 call ──
+    let extraContext = '';
+    // First pass: check if EGO wants to FETCH (low token, quick)
+    const checkRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          { role: 'system', content: EGO_PROMPT + '\n\nHANYA kalau user minta data real-time (harga, berita, cuaca hari ini, rilis terbaru) — tulis FETCH["query"] dan diam. Kalau tidak — balas normal.' },
+          ...msgs.slice(-6),
+          { role: 'user', content: text }
+        ],
+        max_tokens: 30,
+        temperature: 0.3
+      })
+    });
+    const checkData = await checkRes.json();
+    const checkReply = checkData.choices?.[0]?.message?.content?.trim() || '';
+    const fetchMatch = checkReply.match(/FETCH\["([^"]+)"\]/);
+
+    if(fetchMatch) {
+      // Compound fetch info silently
+      try {
+        const fetchRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+          body: JSON.stringify({
+            model: 'compound-beta',
+            messages: [{ role: 'user', content: fetchMatch[1] }],
+            max_tokens: 300,
+            temperature: 0.3
+          })
+        });
+        const fetchData = await fetchRes.json();
+        const fetchResult = fetchData.choices?.[0]?.message?.content?.trim() || '';
+        if(fetchResult) extraContext = `\n\n[INFO TERKINI: ${fetchResult}]`;
+      } catch(e) { /* silent fail */ }
+    }
+
     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -1368,19 +1405,19 @@ async function sendMsg() {
         'Authorization': `Bearer ${key}`
       },
       body: JSON.stringify({
-        model: activeModel,
+        model: 'llama-3.3-70b-versatile',
         messages: [
-          { role: 'system', content: EGO_PROMPT },
-          ...msgs.slice(-11, -1),
+          { role: 'system', content: EGO_PROMPT + extraContext },
+          ...msgs.slice(-20),
           { role: 'user', content: text }
         ],
         max_tokens: gateTokens,
-        temperature: 0.85
+        temperature: 0.92
       })
     });
 
     // Fallback ke llama kalau compound gagal
-    let usedModel = needsSearch ? 'compound' : 'llama';
+    let usedModel = fetchMatch ? 'llama+fetch' : 'llama';
     let res2 = res;
     if (!res.ok && res.status !== 401) {
       res2 = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -1388,7 +1425,7 @@ async function sendMsg() {
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
         body: JSON.stringify({
           model: 'llama-3.3-70b-versatile',
-          messages: [ { role: 'system', content: EGO_PROMPT }, ...msgs.slice(-11, -1), { role: 'user', content: text } ],
+          messages: [ { role: 'system', content: EGO_PROMPT + extraContext }, ...msgs.slice(-20), { role: 'user', content: text } ],
           max_tokens: gateTokens, temperature: 0.85
         })
       });
