@@ -559,6 +559,49 @@
   }
 
 
+  /* ── BACKEND INTEGRATION STYLES ── */
+
+  /* Backend status badge */
+  .backend-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-family: 'Space Mono', monospace; font-size: 7px;
+    padding: 2px 8px; border-radius: 10px; letter-spacing: 0.1em;
+    background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06);
+    transition: all 0.4s ease; cursor: default;
+  }
+  .backend-badge.online  { border-color: rgba(0,220,100,.4); color: #00dc64; }
+  .backend-badge.offline { border-color: rgba(100,100,100,.2); color: #333; }
+  .backend-badge .bdot   { width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+  .backend-badge.online .bdot { animation: bdotblink 1.5s ease infinite; }
+  @keyframes bdotblink { 0%,100%{opacity:.4} 50%{opacity:1} }
+
+  /* URIP intent pill */
+  .urip-pill {
+    font-family: 'Space Mono', monospace; font-size: 7px;
+    padding: 2px 8px; border-radius: 10px; letter-spacing: 0.1em;
+    color: rgba(201,168,76,.35); border: 1px solid rgba(201,168,76,.1);
+    background: transparent; transition: all 0.4s ease;
+    white-space: nowrap;
+  }
+  .urip-pill.live { color: #c9a84c; border-color: rgba(201,168,76,.35); }
+
+  /* Identity bar */
+  .identity-bar {
+    display: flex; gap: 10px; padding: 4px 16px;
+    background: rgba(4,4,14,.55);
+    border-bottom: 1px solid rgba(201,168,76,.05);
+    flex-shrink: 0; overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .identity-bar::-webkit-scrollbar { display: none; }
+  .id-chip {
+    font-family: 'Space Mono', monospace; font-size: 6px;
+    color: rgba(201,168,76,.28); white-space: nowrap; letter-spacing: 0.08em;
+    transition: color 0.4s ease;
+  }
+  .id-chip.lit { color: rgba(201,168,76,.65); }
+  .id-chip span { color: rgba(201,168,76,.75); }
+
   /* ROOM PHOTO BACKGROUND */
   .room-photo {
     position: fixed;
@@ -928,11 +971,17 @@
     <canvas id="spiralCanvas" width="36" height="36" style="position:absolute;bottom:72px;right:8px;width:36px;height:36px;opacity:.3;z-index:12;pointer-events:none;"></canvas>
     <div class="chat-top">
       <div class="face" id="chatFace">🙂</div>
-      <div>
+      <div style="flex:1;min-width:0;">
         <div class="name">EGO</div>
         <div class="theta" id="thetaDisplay">θ = 0.00 · nucleus</div>
       </div>
-      <div style="width:80px"></div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+        <div class="backend-badge offline" id="backendBadge">
+          <div class="bdot"></div>
+          <span id="backendStateLabel">offline</span>
+        </div>
+        <div class="urip-pill" id="uripPill">◌ idle</div>
+      </div>
     </div>
     <!-- ECHO LINE -->
     <div class="echo-line" id="echoLine">residue · 0.0318 · session sebelumnya masih ada</div>
@@ -956,6 +1005,15 @@
       <div class="media-btn" onclick="triggerFile()">
         <div class="mi">📎</div><div class="ml">FILE</div>
       </div>
+    </div>
+    <!-- IDENTITY BAR -->
+    <div class="identity-bar" id="identityBar">
+      <div class="id-chip" id="idExplore">EXP <span>—</span></div>
+      <div class="id-chip" id="idReflect">REF <span>—</span></div>
+      <div class="id-chip" id="idStability">STB <span>—</span></div>
+      <div class="id-chip" id="idAwareness">AWR <span>—</span></div>
+      <div class="id-chip" id="idDrift">DRF <span>—</span></div>
+      <div class="id-chip" id="idDominant">◎ <span>—</span></div>
     </div>
     <!-- RECORDING INDICATOR -->
     <div class="rec-indicator" id="recIndicator">
@@ -1346,126 +1404,178 @@ async function sendMsg() {
   
 
   try {
-    // Smart routing: compound untuk info terkini, llama untuk chat biasa
-    // ── SYKLUS GATE — decision engine, bukan UI ──
-    const S = calcSScore(text);
+    // ════════════════════════════════════════════════════
+    // ROUTE: backend /think first → fallback direct Groq
+    // ════════════════════════════════════════════════════
+    const S    = calcSScore(text);
     const gate = applyGate(S);
 
-    // SILENCE: EGO diam — tidak response sama sekali
-    if(gate.zone === 'silence') {
+    if (gate.zone === 'silence') {
       typing.remove();
       updateTheta();
       return;
     }
 
-    // NOISE: response sangat pendek
     const gateTokens = 500;
 
-    // ── FETCH: llama decide + jawab dalam 1 call ──
-    let extraContext = '';
-    // First pass: check if EGO wants to FETCH (low token, quick)
-    const checkRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          { role: 'system', content: EGO_PROMPT + '\n\nHANYA kalau user minta data real-time (harga, berita, cuaca hari ini, rilis terbaru) — tulis FETCH["query"] dan diam. Kalau tidak — balas normal.' },
-          ...msgs.slice(-6),
-          { role: 'user', content: text }
-        ],
-        max_tokens: 30,
-        temperature: 0.3
-      })
-    });
-    const checkData = await checkRes.json();
-    const checkReply = checkData.choices?.[0]?.message?.content?.trim() || '';
-    const fetchMatch = checkReply.match(/FETCH\["([^"]+)"\]/);
+    // ── Detect current emotion from active mood button ──
+    const activeMoodBtn = document.querySelector('.mbtn.active .mlabel');
+    const currentEmotion = activeMoodBtn ? activeMoodBtn.textContent : 'netral';
+    const emotionMap = {
+      calm:'netral', happy:'bersyukur', joy:'bersyukur', grin:'rajin',
+      excited:'penasaran', love:'empati', adore:'empati', cool:'rendah_hati',
+      hype:'penasaran', smirk:'sombong', laugh:'netral', lmao:'netral',
+      awkward:'netral', think:'penasaran', analyze:'penasaran', confused:'netral',
+      neutral:'netral', done:'sabar', meh:'malas', unimpressed:'malas',
+      sus:'netral', unsure:'netral', worried:'sabar', shocked:'netral',
+      horror:'netral', mindblown:'penasaran', dizzy:'netral', spiral:'netral',
+      woozy:'netral', sleepy:'malas', tired:'malas', sad:'sabar', cry:'empati',
+      down:'sabar', angry:'marah', rage:'marah', huff:'marah', evil:'nafsu',
+      devil:'nafsu', dead:'netral', robot:'rajin', flex:'rajin', praise:'bersyukur',
+      sick:'sabar', party:'bersyukur',
+    };
+    const backendEmotion = emotionMap[currentEmotion] || 'netral';
 
-    if(fetchMatch) {
-      // Compound fetch info silently
+    // ── Try backend /think first ──
+    let reply = null;
+    let usedSource = 'groq';
+
+    if (backendOnline) {
       try {
-        const fetchRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        const bRes = await fetch(BACKEND_URL + '/think', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-          body: JSON.stringify({
-            model: 'compound-beta',
-            messages: [{ role: 'user', content: fetchMatch[1] }],
-            max_tokens: 300,
-            temperature: 0.3
-          })
+          headers: { 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(8000),
+          body: JSON.stringify({ input: text, emotion: backendEmotion })
         });
-        const fetchData = await fetchRes.json();
-        const fetchResult = fetchData.choices?.[0]?.message?.content?.trim() || '';
-        if(fetchResult) extraContext = `\n\n[INFO TERKINI: ${fetchResult}]`;
-      } catch(e) { /* silent fail */ }
+        if (bRes.ok) {
+          const bData = await bRes.json();
+          if (bData.response) {
+            reply = bData.response;
+            usedSource = `backend·${bData.state || ''}`;
+            // update echo with backend info
+            const echo = document.getElementById('echoLine');
+            if (echo) echo.textContent = `backend · θ=${bData.theta || '?'} · ${bData.emotion || backendEmotion}`;
+          }
+        }
+      } catch (_) {
+        // backend timeout or error — fall through to Groq
+        backendOnline = false;
+        const badge = document.getElementById('backendBadge');
+        if (badge) badge.className = 'backend-badge offline';
+        const lbl = document.getElementById('backendStateLabel');
+        if (lbl) lbl.textContent = 'offline';
+      }
     }
 
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${key}`
-      },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          { role: 'system', content: EGO_PROMPT + extraContext },
-          ...msgs.slice(-20),
-          { role: 'user', content: text }
-        ],
-        max_tokens: gateTokens,
-        temperature: 0.92
-      })
-    });
-
-    // Fallback ke llama kalau compound gagal
-    let usedModel = fetchMatch ? 'llama+fetch' : 'llama';
-    let res2 = res;
-    if (!res.ok && res.status !== 401) {
-      res2 = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    // ── Fallback: direct Groq ──
+    if (!reply) {
+      let extraContext = '';
+      // smart routing: check if real-time fetch needed
+      const checkRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
         body: JSON.stringify({
           model: 'llama-3.3-70b-versatile',
-          messages: [ { role: 'system', content: EGO_PROMPT + extraContext }, ...msgs.slice(-20), { role: 'user', content: text } ],
-          max_tokens: gateTokens, temperature: 0.85
+          messages: [
+            { role: 'system', content: EGO_PROMPT + '\n\nHANYA kalau user minta data real-time (harga, berita, cuaca hari ini, rilis terbaru) — tulis FETCH["query"] dan diam. Kalau tidak — balas normal.' },
+            ...msgs.slice(-6),
+            { role: 'user', content: text }
+          ],
+          max_tokens: 30,
+          temperature: 0.3
         })
       });
-      usedModel = 'llama';
+      const checkData = await checkRes.json();
+      const checkReply = checkData.choices?.[0]?.message?.content?.trim() || '';
+      const fetchMatch = checkReply.match(/FETCH\["([^"]+)"\]/);
+
+      if (fetchMatch) {
+        try {
+          const fetchRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+            body: JSON.stringify({
+              model: 'compound-beta',
+              messages: [{ role: 'user', content: fetchMatch[1] }],
+              max_tokens: 300,
+              temperature: 0.3
+            })
+          });
+          const fetchData = await fetchRes.json();
+          const fetchResult = fetchData.choices?.[0]?.message?.content?.trim() || '';
+          if (fetchResult) extraContext = `\n\n[INFO TERKINI: ${fetchResult}]`;
+        } catch(e) { /* silent */ }
+      }
+
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [
+            { role: 'system', content: EGO_PROMPT + extraContext },
+            ...msgs.slice(-20),
+            { role: 'user', content: text }
+          ],
+          max_tokens: gateTokens,
+          temperature: 0.92
+        })
+      });
+
+      let res2 = res;
+      if (!res.ok && res.status !== 401) {
+        res2 = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+          body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            messages: [{ role: 'system', content: EGO_PROMPT + extraContext }, ...msgs.slice(-20), { role: 'user', content: text }],
+            max_tokens: gateTokens, temperature: 0.85
+          })
+        });
+      }
+
+      usedSource = fetchMatch ? 'llama+fetch' : 'llama';
+      const echo = document.getElementById('echoLine');
+      if (echo) echo.textContent = `${usedSource} · θ=${theta.toFixed(2)} · 0.0318`;
+
+      typing.remove();
+
+      if (res2.status === 401) {
+        localStorage.removeItem('ego_groq_key');
+        addMsg('API key expired. Masukkan yang baru.', 'ego');
+        return;
+      }
+      if (!res2.ok) {
+        let errDetail = '';
+        try { const ed = await res2.json(); errDetail = ed.error?.message || ''; } catch(e) {}
+        addMsg(`Error ${res2.status}: ${errDetail || 'coba lagi bro'}`, 'ego');
+        return;
+      }
+
+      const data = await res2.json();
+      if (data.error) { addMsg(`Error: ${data.error.message || 'unknown'}`, 'ego'); return; }
+      const _raw = data.choices?.[0]?.message?.content || '...';
+      reply = _raw
+        .replace(/\*\*([^*]+)\*\*/g, '$1')
+        .replace(/\*([^*]+)\*/g, '$1')
+        .replace(/^[-•*]\s+/gm, '')
+        .replace(/^#+\s+/gm, '')
+        .replace(/\n{3,}/g, '\n')
+        .trim();
+    } else {
+      // backend reply — still clean it
+      typing.remove();
+      reply = reply
+        .replace(/\*\*([^*]+)\*\*/g, '$1')
+        .replace(/\*([^*]+)\*/g, '$1')
+        .replace(/^[-•*]\s+/gm, '')
+        .replace(/^#+\s+/gm, '')
+        .replace(/\n{3,}/g, '\n')
+        .trim();
     }
 
-    // Echo line: tampilkan model aktif
-    const echo = document.getElementById('echoLine');
-    if(echo) echo.textContent = `${usedModel} · θ=${theta.toFixed(2)} · 0.0318`;
-
-    typing.remove();
-
-    if (res2.status === 401) {
-      localStorage.removeItem('ego_groq_key');
-      addMsg('API key expired. Masukkan yang baru.', 'ego');
-      return;
-    }
-    if (!res2.ok) {
-      let errDetail = '';
-      try { const ed = await res2.json(); errDetail = ed.error?.message || ''; } catch(e) {}
-      addMsg(`Error ${res2.status}: ${errDetail || 'coba lagi bro'}`, 'ego');
-      return;
-    }
-
-    const data = await res2.json();
-    if (data.error) {
-      addMsg(`Error: ${data.error.message || 'unknown'}`, 'ego');
-      return;
-    }
-    const _raw = data.choices?.[0]?.message?.content || '...';
-    const reply = _raw
-      .replace(/\*\*([^*]+)\*\*/g, '$1')
-      .replace(/\*([^*]+)\*/g, '$1')
-      .replace(/^[-•*]\s+/gm, '')
-      .replace(/^#+\s+/gm, '')
-      .replace(/\n{3,}/g, '\n')
-      .trim();
     addMsg(reply, 'ego');
     msgs.push({ role: 'assistant', content: reply });
     saveState();
@@ -2098,6 +2208,134 @@ function updateMood(text) {
   }
 }
 
+
+// ══════════════════════════════════════════
+// BACKEND v6 INTEGRATION
+// ══════════════════════════════════════════
+
+const BACKEND_URL = 'http://localhost:5000';
+let backendOnline  = false;
+let _backendStatus = null; // last known status snapshot
+
+// map backend emotion → EGO mood key
+const EMOTION_TO_MOOD = {
+  penasaran: 'think',  empati: 'adore',    bersyukur: 'happy',
+  rajin: 'cool',       rendah_hati: 'calm', ikhlas: 'calm',
+  sabar: 'neutral',    rakus: 'hype',       nafsu: 'evil',
+  iri: 'sus',          malas: 'sleepy',     sombong: 'smirk',
+  tamak: 'hype',       marah: 'angry',      netral: 'neutral',
+};
+
+// map backend state → status text
+const STATE_LABEL = {
+  collapsed: '💀 collapsed', silent: '🌑 silent',
+  noise:     '▸ noise',      signal: '◉ signal',
+  active:    '◎ active',     sync:   '✦ sync',
+};
+
+// Poll /status every 2 seconds
+async function pollBackend() {
+  try {
+    const res = await fetch(BACKEND_URL + '/status', { signal: AbortSignal.timeout(1500) });
+    if (!res.ok) throw new Error('not ok');
+    const data = await res.json();
+    _backendStatus = data;
+
+    if (!backendOnline) {
+      backendOnline = true;
+      // announce once on connect
+      const echo = document.getElementById('echoLine');
+      if (echo) echo.textContent = `backend v6 · θ=${data.theta} · ${data.state}`;
+    }
+
+    // ── Badge ──
+    const badge = document.getElementById('backendBadge');
+    const lbl   = document.getElementById('backendStateLabel');
+    if (badge && lbl) {
+      badge.className = 'backend-badge online';
+      lbl.textContent = STATE_LABEL[data.state] || data.state;
+    }
+
+    // ── URIP pill ──
+    const pill = document.getElementById('uripPill');
+    if (pill && data.last_intent) {
+      pill.className = 'urip-pill live';
+      const streak = data.intent_streak > 1 ? ` ×${data.intent_streak}` : '';
+      pill.textContent = `◎ ${data.last_intent}${streak}`;
+    }
+
+    // ── θ display — backend theta overrides local ──
+    const thetaEl = document.getElementById('thetaDisplay');
+    if (thetaEl) {
+      const bTheta = data.theta;
+      let zone = bTheta < 10 ? 'nucleus' : bTheta < 62 ? 'shell 1' : 'shell 2';
+      thetaEl.textContent = `θ = ${bTheta.toFixed ? bTheta.toFixed(2) : bTheta} · ${zone} · ${data.emotion || 'netral'}`;
+    }
+
+    // ── Mood pill update from backend emotion ──
+    const emoMood = EMOTION_TO_MOOD[data.emotion] || 'neutral';
+    if (data.emotion && data.emotion !== 'netral') {
+      const entry = moods.find(m => m[1] === emoMood);
+      if (entry) {
+        const [face,,, status] = entry;
+        const s = document.getElementById('status');
+        if (s) { s.textContent = status; }
+        setFaceChat(face);
+      }
+    }
+
+    // ── Signal meter — backend strength ──
+    const sf = document.getElementById('sFill');
+    const sv = document.getElementById('sMoodLabel');
+    if (sf && data.strength !== undefined) {
+      const pct = (Math.min(data.strength / 0.9682, 1) * 100).toFixed(1);
+      sf.style.width = pct + '%';
+    }
+    if (sv) sv.textContent = (data.state || '').toUpperCase();
+
+    // ── Identity bar ──
+    const id = data.identity;
+    if (id) {
+      const set = (elId, val, suffix) => {
+        const el = document.getElementById(elId);
+        if (!el) return;
+        el.classList.add('lit');
+        el.querySelector('span').textContent = typeof val === 'number' ? val.toFixed(3) + (suffix||'') : val;
+      };
+      set('idExplore',   id.explore_bias,   '');
+      set('idReflect',   id.reflect_bias,   '');
+      set('idStability', id.stability,      '');
+      set('idAwareness', id.awareness_level,'');
+      set('idDrift',     id.drift_score,    '');
+      if (id.dominant_intent) {
+        const dom = document.getElementById('idDominant');
+        if (dom) { dom.classList.add('lit'); dom.querySelector('span').textContent = id.dominant_intent; }
+      }
+    }
+
+  } catch (_) {
+    if (backendOnline) {
+      backendOnline = false;
+      _backendStatus = null;
+      const badge = document.getElementById('backendBadge');
+      const lbl   = document.getElementById('backendStateLabel');
+      if (badge) badge.className = 'backend-badge offline';
+      if (lbl)   lbl.textContent = 'offline';
+      const pill  = document.getElementById('uripPill');
+      if (pill)   { pill.className = 'urip-pill'; pill.textContent = '◌ offline'; }
+      // reset identity chips
+      document.querySelectorAll('.id-chip').forEach(c => {
+        c.classList.remove('lit');
+        const s = c.querySelector('span');
+        if (s) s.textContent = '—';
+      });
+    }
+  }
+}
+
+// Start polling right away + every 2s
+pollBackend();
+setInterval(pollBackend, 2000);
 
 // ══════════════════════════════════════════
 // SYKLUS GEOMETRY SYSTEM
