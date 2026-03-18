@@ -974,13 +974,13 @@
       <div style="flex:1;min-width:0;">
         <div class="name">EGO</div>
         <div class="theta" id="thetaDisplay">θ = 0.00 · nucleus</div>
+        <div class="urip-pill" id="uripPill" style="margin-top:3px;">◌ idle</div>
       </div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+      <div style="display:flex;flex-direction:column;align-items:flex-end;padding-right:86px;">
         <div class="backend-badge offline" id="backendBadge">
           <div class="bdot"></div>
           <span id="backendStateLabel">offline</span>
         </div>
-        <div class="urip-pill" id="uripPill">◌ idle</div>
       </div>
     </div>
     <!-- ECHO LINE -->
@@ -1446,7 +1446,7 @@ async function sendMsg() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           signal: AbortSignal.timeout(8000),
-          body: JSON.stringify({ input: text, emotion: backendEmotion })
+          body: JSON.stringify({ input: text, emotion: backendEmotion, history: msgs.slice(-10) })
         });
         if (bRes.ok) {
           const bData = await bRes.json();
