@@ -1453,9 +1453,10 @@ async function sendMsg() {
           if (bData.response) {
             reply = bData.response;
             usedSource = `backend·${bData.state || ''}`;
-            // update echo with backend info
+            // update echo with backend info + urip_id
             const echo = document.getElementById('echoLine');
-            if (echo) echo.textContent = `backend · θ=${bData.theta || '?'} · ${bData.emotion || backendEmotion}`;
+            const uripShort = bData.urip_id ? ` · ${bData.urip_id.slice(0,10)}` : '';
+            if (echo) echo.textContent = `backend · θ=${bData.theta || '?'} · ${bData.emotion || backendEmotion}${uripShort}`;
           }
         }
       } catch (_) {
