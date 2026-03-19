@@ -434,7 +434,6 @@ async function sendMsg() {
       if (checkRes.status === 429) {
         typing.remove();
         addMsg('...', 'ego');
-        setBusy(false);
         return;
       }
       const checkData = await checkRes.json();
@@ -478,7 +477,6 @@ async function sendMsg() {
       if (res.status === 429) {
         typing.remove();
         addMsg('...', 'ego');
-        setBusy(false);
         return;
       }
       let res2 = res;
