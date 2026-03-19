@@ -2,7 +2,8 @@
   "name": "EGO",
   "short_name": "EGO",
   "description": "Avatar · Autonomous AI · r(θ) = 105 × e^(0.0318 × θ)",
-  "start_url": "/",
+  "start_url": "/Ego_bot/",
+  "scope": "/Ego_bot/",
   "display": "standalone",
   "background_color": "#0a0a0f",
   "theme_color": "#c9a84c",
@@ -25,7 +26,7 @@
   "shortcuts": [
     {
       "name": "Chat with EGO",
-      "url": "/?mode=chat",
+      "url": "/Ego_bot/?mode=chat",
       "description": "Open chat"
     }
   ]
