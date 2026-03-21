@@ -3,6 +3,7 @@
 // ══════════════════════════════════════════
 
 const BACKEND_URL = 'http://localhost:5000';
+const THINK_URL   = 'http://localhost:8000';  // server 2 · think engine
 let backendOnline  = false;
 let _backendStatus = null; // last known status snapshot
 
@@ -34,7 +35,7 @@ async function pollBackend() {
       backendOnline = true;
       // announce once on connect
       const echo = document.getElementById('echoLine');
-      if (echo) echo.textContent = `backend v6 · θ=${data.theta} · ${data.state}`;
+      if (echo) echo.textContent = `backend v4 · θ=${data.theta} · ${data.state}`;
     }
 
     // ── Badge ──
@@ -45,12 +46,14 @@ async function pollBackend() {
       lbl.textContent = STATE_LABEL[data.state] || data.state;
     }
 
-    // ── URIP pill ──
+    // ── URIP pill — v4: pakai dominant_axis + alive ──
     const pill = document.getElementById('uripPill');
-    if (pill && data.last_intent) {
-      pill.className = 'urip-pill live';
-      const streak = data.intent_streak > 1 ? ` ×${data.intent_streak}` : '';
-      pill.textContent = `◎ ${data.last_intent}${streak}`;
+    if (pill) {
+      if (data.alive) {
+        pill.className = 'urip-pill live';
+        const dom = data.dominant_axis || 'aktif';
+        pill.textContent = `◎ ${dom} · θ=${data.theta?.toFixed ? data.theta.toFixed(1) : data.theta}`;
+      }
     }
 
     // ── θ display — backend theta overrides local ──
@@ -82,23 +85,23 @@ async function pollBackend() {
     }
     if (sv) sv.textContent = (data.state || '').toUpperCase();
 
-    // ── Identity bar ──
-    const id = data.identity;
-    if (id) {
+    // ── Identity bar — v4: map dari axes_4z ──
+    const axes = data.axes_4z;
+    if (axes) {
       const set = (elId, val, suffix) => {
         const el = document.getElementById(elId);
         if (!el) return;
         el.classList.add('lit');
         el.querySelector('span').textContent = typeof val === 'number' ? val.toFixed(3) + (suffix||'') : val;
       };
-      set('idExplore',   id.explore_bias,   '');
-      set('idReflect',   id.reflect_bias,   '');
-      set('idStability', id.stability,      '');
-      set('idAwareness', id.awareness_level,'');
-      set('idDrift',     id.drift_score,    '');
-      if (id.dominant_intent) {
+      set('idExplore',   axes.aktif,      '');  // aktif = exploration drive
+      set('idReflect',   axes.reflektif,  '');  // reflektif = self-awareness
+      set('idStability', data.strength,   '');  // strength = stability
+      set('idAwareness', axes.reseptif,   '');  // reseptif = receptiveness
+      set('idDrift',     axes.proyektif,  '');  // proyektif = projection/drift
+      if (data.dominant_axis) {
         const dom = document.getElementById('idDominant');
-        if (dom) { dom.classList.add('lit'); dom.querySelector('span').textContent = id.dominant_intent; }
+        if (dom) { dom.classList.add('lit'); dom.querySelector('span').textContent = data.dominant_axis; }
       }
     }
 
