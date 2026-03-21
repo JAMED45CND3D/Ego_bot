@@ -20,7 +20,7 @@ const EMOTION_TO_MOOD = {
 const STATE_LABEL = {
   collapsed: '💀 collapsed', silent: '🌑 silent',
   noise:     '▸ noise',      signal: '◉ signal',
-  active:    '◎ active',     sync:   '✦ sync',
+  sync:   '✦ sync',
 };
 
 // Poll /status every 2 seconds
@@ -342,3 +342,38 @@ async function spiralFlow() {
 }
 
 function applyDayCycle() { applySkyCycle(); }
+
+const SKY_CYCLES={
+  dawn:{sky:'radial-gradient(ellipse at 50% 100%, rgba(220,80,20,.75) 0%, rgba(160,40,80,.55) 40%, rgba(40,10,60,.85) 100%)',starsOp:.2,rain:0,orbW:14,orbL:'40%',orbT:'18%',orbBg:'radial-gradient(circle at 35% 35%, #ffd080, #ff8030)',orbGlow:'rgba(255,160,60,.5)',ring:'rgba(255,120,40,.4)',ringGlow:'rgba(255,100,30,.2)',photoOp:.42},
+  day:{sky:'radial-gradient(ellipse at 50% 0%, rgba(80,160,255,.65) 0%, rgba(40,100,200,.55) 50%, rgba(10,40,100,.75) 100%)',starsOp:0,rain:0,orbW:20,orbL:'50%',orbT:'5%',orbBg:'radial-gradient(circle at 35% 35%, #fffde0, #ffe080)',orbGlow:'rgba(255,240,120,.65)',ring:'rgba(80,160,255,.4)',ringGlow:'rgba(60,140,255,.2)',photoOp:.60},
+  dusk:{sky:'radial-gradient(ellipse at 70% 80%, rgba(255,80,20,.8) 0%, rgba(180,30,60,.65) 35%, rgba(40,10,50,.9) 100%)',starsOp:.45,rain:0,orbW:18,orbL:'65%',orbT:'55%',orbBg:'radial-gradient(circle at 35% 35%, #ff9040, #ff4010)',orbGlow:'rgba(255,100,30,.6)',ring:'rgba(255,80,30,.45)',ringGlow:'rgba(255,60,20,.2)',photoOp:.46},
+  night:{sky:'radial-gradient(ellipse at 30% 30%, rgba(20,30,80,.55) 0%, rgba(5,8,30,.75) 50%, rgba(0,0,10,.92) 100%)',starsOp:1,rain:.22,orbW:13,orbL:'18%',orbT:'10%',orbBg:'radial-gradient(circle at 35% 35%, #e8e0d0, #b8a878)',orbGlow:'rgba(200,190,160,.3)',ring:'rgba(0,180,255,.4)',ringGlow:'rgba(0,160,255,.2)',photoOp:.55}
+};
+function applySkyCycle(){
+  const h=new Date().getHours();
+  let key='night';
+  if(h>=5&&h<9) key='dawn';
+  if(h>=9&&h<17) key='day';
+  if(h>=17&&h<21) key='dusk';
+  const c=SKY_CYCLES[key];
+  const wSky=document.getElementById('wSky');
+  const wStars=document.getElementById('wStars');
+  const wOrb=document.getElementById('wOrb');
+  const wRain=document.getElementById('wRain');
+  const wRing=document.getElementById('wRing');
+  const photoBg=document.querySelector('.room-photo-bg');
+  if(wSky) wSky.style.background=c.sky;
+  if(wStars) wStars.style.opacity=c.starsOp;
+  if(wRain) wRain.style.opacity=c.rain;
+  if(photoBg) photoBg.style.opacity=c.photoOp;
+  if(wOrb) wOrb.style.cssText=
+    `width:${c.orbW}px;height:${c.orbW}px;left:calc(38% + ${c.orbL});top:calc(11% + ${c.orbT});`+
+    `background:${c.orbBg};box-shadow:0 0 ${c.orbW*1.5}px ${c.orbGlow},0 0 ${c.orbW*3}px ${c.orbGlow.replace(/[\d.]+\)$/,'0.2)')};`+
+    `border-radius:50%;transition:all 3s ease;pointer-events:none;z-index:4;position:fixed;`;
+  if(wRing){
+    wRing.style.borderColor=c.ring;
+    wRing.style.boxShadow=`0 0 20px ${c.ringGlow},0 0 40px ${c.ringGlow.replace(/[\d.]+\)$/,'0.1)')},inset 0 0 20px rgba(0,0,0,.3)`;
+  }
+}
+applySkyCycle();
+setInterval(applySkyCycle,60000);
